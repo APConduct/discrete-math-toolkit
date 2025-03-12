@@ -1,3 +1,21 @@
+if jit then
+    -- LuaJIT
+    local bit = require("bit")
+else
+    local bit = {}
+    bit.band = function(a, b) return a & b end
+    bit.bor = function(a, b) return a | b end
+
+    bit.lshift = function(a, b)
+        return a << b
+    end
+
+    bit.rshift = function(a, b)
+        return a >> b
+    end
+end
+
+local bit = require("bit")
 local M = {}
 
 M.__index = M
@@ -41,7 +59,7 @@ end
 
 function M:contains(element)
     -- return self[value] ~= nil
-    return self.elements[element] == true
+    return self[element] == true
 end
 
 function M:add(element)
@@ -49,11 +67,15 @@ function M:add(element)
 end
 
 function M:remove(element)
-    self.elements[element] = nil
+    self[element] = nil
 end
 
 function M:clear()
-    self.elements = {}
+    for k in pairs(self) do
+        if k ~= "__index" then
+            self[k] = nil
+        end
+    end
 end
 
 function M:size()
@@ -157,10 +179,9 @@ end
 
 -- Powerset set of all subsets
 function M:power_set()
-    local elements
-    self:to_list()
+    local elements = M.to_list(self)
     local n = #elements
-    local power_set = M.new()
+    local power_set = M.new({})
 
     -- 2^n subsets
     for i = 0, (2 ^ n) - 1 do
@@ -169,7 +190,7 @@ function M:power_set()
         -- Check each bit position
         for j = 0, n - 1 do
             -- If the jth bit is a set, include elements[j+1]
-            if (i & (1 << j)) ~= 0 then
+            if bit.band(i, bit.band(i, bit.lshift(1, j))) ~= 0 then
                 table.insert(subset, elements[j + 1])
             end
         end
